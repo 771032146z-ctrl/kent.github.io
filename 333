@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>春悦版套餐选择</title>
+    <!-- 引入 Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <style>
+        * {margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, "微软雅黑", sans-serif;}
+        body {background: #f5f5f5; padding: 15px; max-width: 600px; margin: 0 auto;}
+        .top-notice { font-size: 15px; color: #333; line-height: 1.8; margin-bottom: 25px; text-align: left; }
+        .title {text-align: center; margin: 20px 0; font-size: 26px; color: #d9534f; font-weight: bold;}
+        .sub-title {text-align: center; margin-bottom: 20px; font-size: 16px; color: #666;}
+        .card {background: white; border-radius: 12px; padding: 25px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);}
+        .package {border: 2px solid #eee; border-radius: 10px; padding: 20px; margin: 18px 0; cursor: pointer; transition: all 0.2s;}
+        .package.active {border-color: #d9534f; background: #fff5f5;}
+        .package-header {display: flex; align-items: center; margin-bottom: 15px;}
+        .package input {width: 22px; height: 22px; margin-right: 15px; accent-color: #d9534f;}
+        .package label {font-size: 20px; color: #333; font-weight: bold; cursor: pointer;}
+        .goods-list {padding-left: 37px;}
+        .goods-item {font-size: 15px; color: #666; line-height: 1.6; margin-bottom: 6px; list-style: none;}
+        
+        /* 新增：姓名输入框样式 */
+        .input-group {margin: 20px 0;}
+        .input-group label {display: block; margin-bottom: 8px; font-weight: bold; color: #555;}
+        .input-group input {width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);}
+
+        .submit-btn {width: 100%; padding: 20px; background: #d9534f; color: white; border: none; border-radius: 10px; font-size: 19px; margin-top: 30px; cursor: pointer; font-weight: bold;}
+        .submit-btn:active {background: #c43c3c;}
+        #msg {text-align: center; margin-top: 20px; font-size: 17px; font-weight: bold; display: none;}
+    </style>
+</head>
+<body>
+    <div class="top-notice">
+        各位亲们，收到华发集团工会《关于报送2026年上半年节日慰问品采购会员名单的通知》：<br> 
+        为做好2026年上半年节日慰问品发放工作，现需统计慰问品采购相关会员名单。待名单确定后，将统一发放二维码，由各板块会员自行选择套餐并填写收货地址。
+    </div>
+    <h1 class="title">春悦版套餐选择</h1>
+    <p class="sub-title">请选择您想要的套餐版本</p>
+    
+    <div class="card">
+        <!-- 新增：姓名输入 -->
+        <div class="input-group">
+            <label for="username">请输入您的姓名：</label>
+            <input type="text" id="username" placeholder="请填写真实姓名以便统计" required>
+        </div>
+
+        <!-- 活力版套餐 -->
+        <div class="package" id="a">
+            <div class="package-header">
+                <input type="radio" name="package" id="packageA" value="A">
+                <label for="packageA">活力版</label>
+            </div>
+            <ul class="goods-list">
+                <li class="goods-item">高露洁耀白去渍牙膏100ml（直立式）</li>
+                <li class="goods-item">得宝抽纸90抽*8包</li>
+                <li class="goods-item">维达蓝色经典卷纸</li>
+                <li class="goods-item">丹麦蓝罐曲奇</li>
+                <li class="goods-item">圣牧沙漠有机纯牛奶200ml*10</li>
+                <li class="goods-item">南堡酵素净白洗衣液2kg</li>
+                <li class="goods-item">一百份什果果汁软糖（礼盒装）380g</li>
+            </ul>
+        </div>
+        
+        <!-- 家庭版套餐 -->
+        <div class="package" id="b">
+            <div class="package-header">
+                <input type="radio" name="package" id="packageB" value="B">
+                <label for="packageB">家庭版</label>
+            </div>
+            <ul class="goods-list">
+                <li class="goods-item">田良五常五优稻4号稻花香大米</li>
+                <li class="goods-item">福临门福至心礼压榨一级花生油5L</li>
+                <li class="goods-item">人人家手工蛋卷</li>
+                <li class="goods-item">得宝抽纸90抽*8包</li>
+                <li class="goods-item">得宝抽纸90抽*8包</li>
+            </ul>
+        </div>
+        
+        <button class="submit-btn" id="submit">确认提交选择</button>
+        <div id="msg"></div>
+    </div>
+
+    <script>
+        // === 配置区（请将第一步获取的值填入这里）===
+        const firebaseConfig = {
+            apiKey: "AIzaSyA6UJlLQugJnQVO5DZplBTTsl53m23LoEE",      // 替换为第一步复制的 apiKey
+            projectId: "happiness-package", // 替换为第一步复制的 projectId
+            appId: "1:910595494801:web:cf9d6b5de3dd8ce7fa8030"         // 替换为第一步复制的 appId
+        };
+        // ====================================
+
+        // 初始化 Firebase
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            console.log("Firebase 初始化成功");
+        } catch (e) {
+            console.error("Firebase 初始化失败:", e);
+        }
+
+        // 选择高亮效果
+        const packages = document.querySelectorAll('.package');
+        packages.forEach(item => {
+            item.addEventListener('click', () => {
+                packages.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                item.querySelector('input').checked = true;
+            });
+        });
+
+        // 提交选择
+        document.getElementById('submit').addEventListener('click', async () => {
+            const packageVal = document.querySelector('input[name="package"]:checked');
+            const username = document.getElementById('username').value.trim();
+            const msg = document.getElementById('msg');
+
+            if (!username) {
+                msg.textContent = "请输入您的姓名！";
+                msg.style.color = "red";
+                msg.style.display = "block";
+                return;
+            }
+            if (!packageVal) {
+                msg.textContent = "请选择一个套餐！";
+                msg.style.color = "red";
+                msg.style.display = "block";
+                return;
+            }
+
+            // 禁用按钮防止重复提交
+            const btn = document.getElementById('submit');
+            btn.disabled = true;
+            btn.style.background = "#ccc";
+            msg.textContent = "正在提交...";
+            msg.style.color = "#007bff";
+            msg.style.display = "block";
+
+            try {
+                // 发送数据到 Firestore
+                await db.collection("submissions").add({
+                    name: username,
+                    package: packageVal.value,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                msg.textContent = "提交成功！感谢配合。";
+                msg.style.color = "#28a745";
+            } catch (error) {
+                console.error("提交失败:", error);
+                msg.textContent = "提交失败，请重试或联系管理员。";
+                msg.style.color = "red";
+                btn.disabled = false; // 失败了允许重试
+                btn.style.background = "#d9534f";
+            }
+        });
+    </script>
+</body>
+</html>
+
+
